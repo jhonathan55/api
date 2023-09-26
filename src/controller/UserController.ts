@@ -1,53 +1,29 @@
-import { AppDataSource } from "../data-source"
-import { NextFunction, Request, Response } from "express"
-import { User } from "../entity/User"
+import { Request, Response } from "express";
+import { User } from "../entity/User";
+import { validate } from "class-validator";
+import { AppDataSource } from "../data-source";
 
 export class UserController {
 
-    private userRepository = AppDataSource.getRepository(User)
+    static newUser = async (req: Request, res: Response) => {
 
-    async all(request: Request, response: Response, next: NextFunction) {
-        return this.userRepository.find()
-    }
-
-    async one(request: Request, response: Response, next: NextFunction) {
-        const id = parseInt(request.params.id)
-
-
-        const user = await this.userRepository.findOne({
-            where: { id }
-        })
-
-        if (!user) {
-            return "unregistered user"
-        }
-        return user
-    }
-
-    async save(request: Request, response: Response, next: NextFunction) {
-        const { firstName, lastName, age } = request.body;
-
-        const user = Object.assign(new User(), {
-            firstName,
-            lastName,
-            age
-        })
-
-        return this.userRepository.save(user)
-    }
-
-    async remove(request: Request, response: Response, next: NextFunction) {
-        const id = parseInt(request.params.id)
-
-        let userToRemove = await this.userRepository.findOneBy({ id })
-
-        if (!userToRemove) {
-            return "this user not exist"
+        try {
+            const { name, email, password } = req.body;
+            const user = new User();
+            user.name = name;
+            user.email = email;
+            user.password = password;
+            const validationOpt = { validationError: { target: false, value: false } }
+            const errors = await validate(user, validationOpt)
+            if (errors.length > 0) return res.status(400).json(errors)
+            const userRepo = AppDataSource.getMongoRepository(User)
+            user.hashPassword()
+            await userRepo.save(user)
+            return res.status(200).json(user)
+        } catch (error) {
+            return res.status(400).json(error)
         }
 
-        await this.userRepository.remove(userToRemove)
-
-        return "user has been removed"
     }
 
 }
