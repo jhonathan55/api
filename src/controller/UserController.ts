@@ -6,7 +6,6 @@ import { AppDataSource } from "../data-source";
 export class UserController {
 
     static newUser = async (req: Request, res: Response) => {
-
         try {
             const { name, email, password } = req.body;
             const user = new User();
@@ -23,7 +22,7 @@ export class UserController {
         } catch (error) {
             return res.status(400).json(error)
         }
-
     }
+    
 
 }
